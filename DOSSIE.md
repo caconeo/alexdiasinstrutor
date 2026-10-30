@@ -1,6 +1,6 @@
 # DOSSIÊ COMPLETO DO SISTEMA DE GESTÃO DE DIREÇÃO
 **Documento Oficial de Registro Técnico, Arquitetura de Software, Catálogo de Telas, Funcionalidades, Regras de Negócio e Agentes de Segurança**  
-*Data de Homologação: Outubro de 2026 | Versão da Plataforma: v5.5 Auditada e Homologada*
+*Data de Homologação: Outubro de 2026 | Versão da Plataforma: v5.6 Auditada, Homologada e Pronta para Produção (Go-Live & Supabase)*
 
 ---
 
@@ -47,7 +47,7 @@ O sistema opera com controle de acesso baseado em papéis (*Role-Based Access Co
 
 ## 3. CATÁLOGO COMPLETO DE TELAS DO SISTEMA
 
-Abaixo estão descritas todas as 18 interfaces que compõem o sistema (incluindo o novo módulo de Saúde Financeira):
+Abaixo estão descritas todas as 19 interfaces que compõem o sistema (incluindo o módulo de Saúde Financeira e o Migrador Supabase):
 
 ### TELA 1: Login Unificado e Autenticação (`LoginScreen.tsx`)
 - **Finalidade**: Ponto de entrada do sistema para todos os perfis.
@@ -283,6 +283,13 @@ Abaixo estão descritas todas as 18 interfaces que compõem o sistema (incluindo
   - Menu do usuário com exibição do nome, papel e botão de logout seguro.
   - **Barra de Navegação Inferior Mobile**: Menu tátil fixado na base da tela com alvos de toque maiores que 44x44px (padrão WCAG AA), garantindo que o instrutor ou administrador navegue com facilidade pelo celular enquanto está em campo.
 
+### TELA 18: Conector & Migrador Supabase / PostgreSQL (`SupabaseMigrationModal.tsx`)
+- **Finalidade**: Integração com banco de dados relacional externo (Supabase / PostgreSQL), geração de DDL SQL, teste de conectividade e sincronização de dados via API REST ou Dump SQL.
+- **Recursos Principais**:
+  - **Aba 1: Credenciais Supabase**: Configuração e teste ativo da `Project URL` e `API Key` (anon ou service_role) com diagnóstico de rede em tempo real.
+  - **Aba 2: Esquema Relacional SQL (DDL Completo)**: Geração do script oficial com 12 tabelas relacionais (`organizations`, `users`, `students`, `vehicles`, `lessons`, `accounts_receivable`, `payment_records`, `expenses`, `investments`, `package_offers`, `audit_logs`), chaves primárias, chaves estrangeiras com regras de cascata (`ON DELETE CASCADE` e `ON DELETE RESTRICT`), validações de maioridade (`idade >= 18`) e índices de busca. Inclui botões para copiar com 1 clique e baixar o arquivo `.sql`.
+  - **Aba 3: Cópia e Sincronização**: Transmissão direta em lotes para a API PostgREST do Supabase com barra de progresso visual percentual, ou exportação completa de comandos transacionais `INSERT INTO` (Dump SQL).
+
 ---
 
 ## 4. TODOS OS TIPOS DE CADASTROS DO SISTEMA
@@ -457,18 +464,41 @@ O Administrador Master possui o controle supremo e irrestrito sobre todo o ecoss
 
 
 
-O Administrador Master possui o papel supremo na infraestrutura:
-- **E-mail Designado**: `cassiordcosta@gmail.com`
-- **Ferramenta de Varredura de Integridade (`verifyCadastrosIntegrity`)**:
-  - Algoritmo que executa validação cruzada entre Alunos, Instrutores, Organizações, Aulas e Pagamentos.
-  - Verifica:
-    - Se existem alunos sem instrutor atribuído ou vinculados a instrutor inexistente;
-    - Se há aulas práticas sem instrutor ou aluno associado;
-    - Se há contas a receber sem titular correspondente;
-    - Se existem CPFs duplicados na base;
-    - Se existem agendamentos com sobreposição de horários para o mesmo instrutor ou veículo.
-- **Ação Corretiva Imediata**: Em caso de descredenciamento ou substituição de instrutor, o Administrador Master utiliza o modal de **Reatribuição de Alunos** para transferir a carteira de alunos com 1 clique, sem perdas pedagógicas.
-- **Acesso ao Dossiê**: O botão do Dossiê Técnico é restrito exclusivamente ao Master, garantindo sigilo das regras de segurança e agentes de governança.
+### 9.3 Ferramenta de Limpeza Segura para Produção (Modo Go-Live)
+- **Finalidade**: Preparar a base de dados para a entrada em produção real com clientes e alunos verdadeiros.
+- **Segurança e Preservação Absoluta**:
+  - Remove com segurança todos os registros de teste e demonstração (alunos fictícios Pedro e Mariana, histórico simulado de aulas, contas a receber de teste e despesas fictícias).
+  - **Preserva 100% intacta a conta do Administrador Master (`cassiordcosta@gmail.com`)** com permissão soberana `SUPER_ADMIN`.
+  - **Preserva a Organização Principal** vinculada com o plano `MASTER` e chave mestra.
+  - Registra o evento de inicialização `SISTEMA_GOLIVE_LIMPEZA` no livro de auditoria forense.
+- **Localização**: Console Master → Aba "Manutenção & Banco Demo" → Botão "Limpar e Iniciar Produção".
+
+### 9.4 Módulo de Integração, Migração e Esquema Relacional Supabase (PostgreSQL)
+- **Finalidade**: Permitir ao Administrador Master conectar a plataforma a um banco relacional externo PostgreSQL gerenciado no Supabase.
+- **Recursos Principais**:
+  - **Gerador de DDL Oficial com Integridade Relacional**:
+    - Script SQL pronto para execução no SQL Editor do Supabase criando 12 tabelas relacionais (`organizations`, `users`, `students`, `vehicles`, `lessons`, `accounts_receivable`, `payment_records`, `expenses`, `investments`, `package_offers`, `audit_logs`).
+    - Chaves estrangeiras com regras de cascata (`ON DELETE CASCADE` para isolamento por organização e `ON DELETE RESTRICT` para vínculos de instrutores).
+    - Regras de integridade rígidas: restrição de idade legal do Código de Trânsito Brasileiro (`idade >= 18`), integridade financeira em centavos inteiros (eliminando erros de arredondamento) e notas de 1 a 10.
+    - Criação automática de índices de alta performance para queries por aluno, instrutor, data e organização.
+  - **Conector Nativo via API REST PostgREST**:
+    - Teste de conectividade com a URL do projeto (`https://xxx.supabase.co`) e chave de API (`anon` ou `service_role`).
+    - Sincronização e cópia em lotes com tratamento de erro e barra de progresso visual percentual.
+  - **Gerador de Dump SQL Transacional**:
+    - Exportação de script `.sql` completo com comandos `INSERT INTO ... ON CONFLICT DO NOTHING`, envolvidos em transação (`BEGIN / COMMIT`) para carga instantânea via terminal ou SQL Editor.
+- **Localização**: Console Master → Botão "Supabase / PostgreSQL [SQL]" no menu de navegação ou aba "Manutenção & Banco Demo".
+
+### 9.5 Fluxo Ágil de Aprovação de Cadastros e Gestão de Chaves de Acesso (Tokens)
+- **Controle de Entrada (Zero-Trust)**: Nenhum novo usuário opera no sistema sem que o Administrador Master aprove sua solicitação. Cadastros de novos CFCs e instrutores entram com status `PENDENTE_APROVACAO`.
+- **Card de Alerta e Aprovação com 1 Clique**:
+  - Destaque no topo da aba "Instituições & CFCs" com o número de solicitações pendentes e botão "Aprovar & Gerar Chave".
+  - Botão de aprovação direta na linha da tabela de instituições.
+  - Ao aprovar, o status é alterado para `ATIVO` e uma chave de acesso segura é emitida imediatamente (`KEY-CFC-XXXXXX` / `KEY-INST-XXXXXX`).
+- **Encaminhamento Multicanal**:
+  - Modal com visualização da chave, botão de cópia e botões de disparo direto:
+    - **WhatsApp**: Abre a conversa com mensagem cordial pré-formatada contendo nome da instituição, plano liberado, chave de acesso e link direto de login.
+    - **E-mail**: Disparo com assunto e corpo configurados para envio formal.
+  - Botão de regeneração para revogar e emitir nova chave em caso de perda ou suspeita de vazamento.
 
 ---
 
@@ -919,5 +949,5 @@ Este Dossiê constitui o registro definitivo e exaustivo de todas as funcionalid
 
 *Homologado para produção e operação contínua.*  
 *Administração Master: cassiordcosta@gmail.com*  
-*Versão do Sistema: v5.5 Estável, Auditada e Protegida*
+*Versão do Sistema: v5.6 Estável, Auditada e Protegida (Go-Live & Supabase)*
 

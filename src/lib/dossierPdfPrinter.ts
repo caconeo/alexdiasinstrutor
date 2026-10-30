@@ -2,7 +2,7 @@
 
 export const DOSSIER_METADATA = {
   title: 'Dossiê Técnico Homologado - Sistema de Gestão de Direção',
-  version: 'v5.3 Auditada e Estável',
+  version: 'v5.6 Auditada, Homologada e Pronta para Produção (Go-Live & Supabase)',
   date: 'Outubro de 2026',
   masterAdmin: 'cassiordcosta@gmail.com',
   regulations: 'CTB, CONTRAN e LGPD (Lei 13.709/2018)'
@@ -24,7 +24,7 @@ export function getOfficialDossierHtml(): string {
       <div class="meta-grid">
         <div class="meta-item">
           <strong>Versão da Plataforma:</strong>
-          <span>v5.3 Estável e Blindada</span>
+          <span>v5.6 Estável, Homologada e Pronta para Produção</span>
         </div>
         <div class="meta-item">
           <strong>Administrador Master:</strong>
