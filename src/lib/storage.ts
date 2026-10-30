@@ -120,7 +120,7 @@ function seedInitialData() {
     cidade: 'São Paulo',
     estado: 'SP',
     status: 'ATIVO',
-    plano: 'PRO',
+    plano: 'MASTER',
     criadoEm: '2026-01-10T08:00:00Z'
   };
 

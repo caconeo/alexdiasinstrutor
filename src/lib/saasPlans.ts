@@ -301,7 +301,8 @@ export function canAccessModule(
 
   // Senão, pega a lista padrão do plano contratado
   const plans = getSaaSPlans();
-  const planDef = plans[org.plano] || plans.BASICO || DEFAULT_SAAS_PLANS.BASICO;
+  const normalizedPlan = org.plano === 'PRO' ? 'AVANCADO' : org.plano;
+  const planDef = plans[normalizedPlan] || plans.BASICO || DEFAULT_SAAS_PLANS.BASICO;
   return planDef.modulosPermitidos.includes(moduleId);
 }
 
@@ -310,5 +311,6 @@ export function canAccessModule(
  */
 export function getPlanDetails(plano: SaaSPlanType | string): SaaSPlanDefinition {
   const plans = getSaaSPlans();
-  return plans[plano] || plans.BASICO || DEFAULT_SAAS_PLANS.BASICO;
+  const normalized = plano === 'PRO' ? 'AVANCADO' : plano;
+  return plans[normalized] || plans.BASICO || DEFAULT_SAAS_PLANS.BASICO;
 }
