@@ -34,7 +34,8 @@ import {
   Sparkles,
   ExternalLink,
   Clock,
-  Filter
+  Filter,
+  Rocket
 } from 'lucide-react';
 import { db, CadastrosIntegrityReport } from '../../lib/storage';
 import { formatCurrencyBRL, formatDateBR } from '../../lib/validation';
@@ -48,6 +49,7 @@ import { OrganizationNewModal } from './OrganizationNewModal';
 import { OrganizationAccessKeyModal } from './OrganizationAccessKeyModal';
 import { ResetPasswordModal } from './ResetPasswordModal';
 import { SaaSPlansTableView } from './SaaSPlansTableView';
+import { SupabaseMigrationModal } from './SupabaseMigrationModal';
 
 interface AdminMasterPanelProps {
   currentUser: User;
@@ -87,6 +89,7 @@ export const AdminMasterPanel: React.FC<AdminMasterPanelProps> = ({ currentUser,
   const [selectedOrgForKey, setSelectedOrgForKey] = useState<Organization | null>(null);
   const [showNewOrgModal, setShowNewOrgModal] = useState<boolean>(false);
   const [selectedUserForResetPass, setSelectedUserForResetPass] = useState<User | null>(null);
+  const [showSupabaseModal, setShowSupabaseModal] = useState<boolean>(false);
 
   // Reassignment Modal state
   const [studentToReassign, setStudentToReassign] = useState<Student | null>(null);
@@ -127,6 +130,24 @@ export const AdminMasterPanel: React.FC<AdminMasterPanelProps> = ({ currentUser,
   const handleResetData = () => {
     if (window.confirm('Deseja realmente redefinir o banco de dados para os dados padrão de demonstração?')) {
       db.resetDatabase();
+      setResetSuccess(true);
+      setTimeout(() => {
+        setResetSuccess(false);
+        window.location.reload();
+      }, 1000);
+    }
+  };
+
+  const handleCleanForProduction = () => {
+    if (
+      window.confirm(
+        'ATENÇÃO: Deseja realmente LIMPAR todos os dados fictícios de teste e preparar o banco para PRODUÇÃO (Go-Live)?\n\n' +
+        '✓ Sua conta Master (cassiordcosta@gmail.com) e sua Organização Master serão mantidas intactas com Plano Master.\n' +
+        '✓ Todos os alunos, aulas, despesas e pagamentos fictícios de teste serão removidos.\n' +
+        '✓ O sistema ficará pronto para cadastrar clientes e alunos reais.'
+      )
+    ) {
+      db.clearDatabaseForProduction();
       setResetSuccess(true);
       setTimeout(() => {
         setResetSuccess(false);
@@ -353,6 +374,18 @@ export const AdminMasterPanel: React.FC<AdminMasterPanelProps> = ({ currentUser,
         >
           <Database className="w-4 h-4" />
           <span>Manutenção & Banco Demo</span>
+        </button>
+
+        <button
+          onClick={() => setShowSupabaseModal(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs ml-auto"
+          title="Conectar com Supabase, exportar DDL SQL relacional e sincronizar tabelas"
+        >
+          <Database className="w-4 h-4" />
+          <span>Supabase / PostgreSQL</span>
+          <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-white text-[10px]">
+            SQL
+          </span>
         </button>
       </div>
 
@@ -658,6 +691,18 @@ export const AdminMasterPanel: React.FC<AdminMasterPanelProps> = ({ currentUser,
                         {/* Ações */}
                         <td className="py-3 px-3 text-right">
                           <div className="flex items-center justify-end gap-1 flex-wrap">
+                            {/* Botão Rápido de Aprovação se estiver Pendente */}
+                            {isPending && (
+                              <button
+                                onClick={() => handleQuickApprove(org)}
+                                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold cursor-pointer shadow-xs flex items-center gap-1 transition-all mr-1"
+                                title="Aprovar cadastro e gerar chave de acesso imediatamente"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Aprovar</span>
+                              </button>
+                            )}
+
                             {/* Consultar Ficha */}
                             <button
                               onClick={() => setSelectedOrgForDetails(org)}
@@ -734,24 +779,86 @@ export const AdminMasterPanel: React.FC<AdminMasterPanelProps> = ({ currentUser,
 
       {/* TAB 4: MANUTENÇÃO */}
       {activeSubTab === 'MAINTENANCE' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Database className="w-4 h-4 text-purple-600" />
-              Manutenção de Dados & Reset de Demonstração
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Restaura todos os pacotes, instrutores e alunos teste (incluindo o Administrador Cássio Costa `cassiordcosta@gmail.com`) para o estado padrão homologado.
-            </p>
+        <div className="space-y-4">
+          {/* Card Go-Live: Produção Limpa */}
+          <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-900 text-white rounded-2xl p-6 shadow-md border border-emerald-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+            <div className="space-y-1 max-w-xl">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400">
+                  <Rocket className="w-5 h-5" />
+                </span>
+                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                  Ambiente de Produção Oficial · Go-Live
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-white">
+                Limpar Banco de Dados para Produção (Clientes Reais)
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Remove com segurança todos os alunos fictícios, aulas de teste, parcelas simuladas e despesas de demonstração.
+                <strong className="text-emerald-300 block mt-1">
+                  ✓ Preserva 100% intacta a sua conta Master (cassiordcosta@gmail.com) e sua Organização com Plano MASTER.
+                </strong>
+              </p>
+            </div>
+
+            <button
+              onClick={handleCleanForProduction}
+              className="flex items-center justify-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg hover:shadow-emerald-900/30 transition-all cursor-pointer shrink-0"
+            >
+              <Rocket className="w-4 h-4" />
+              <span>Limpar e Iniciar Produção</span>
+            </button>
           </div>
 
-          <button
-            onClick={handleResetData}
-            className="flex items-center gap-1.5 px-4 py-2 border border-red-300 text-red-600 hover:bg-red-50 text-xs font-semibold rounded-xl transition-colors cursor-pointer shrink-0"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Restaurar Banco de Dados Demo
-          </button>
+          {/* Card Supabase & PostgreSQL */}
+          <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950 text-white rounded-2xl p-6 shadow-md border border-indigo-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+            <div className="space-y-1 max-w-xl">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400">
+                  <Database className="w-5 h-5" />
+                </span>
+                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                  Banco Relacional Externo · PostgreSQL & Supabase
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-white">
+                Exportador & Conector Supabase
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Insira as credenciais do seu projeto Supabase, gere o DDL SQL com todas as 12 tabelas relacionais, chaves estrangeiras e índices, e faça a cópia direta dos dados via API ou Dump SQL.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowSupabaseModal(true)}
+              className="flex items-center justify-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg hover:shadow-emerald-900/30 transition-all cursor-pointer shrink-0"
+            >
+              <Database className="w-4 h-4" />
+              <span>Abrir Migrador Supabase</span>
+            </button>
+          </div>
+
+          {/* Card Demo Reset */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Database className="w-4 h-4 text-purple-600" />
+                Restaurar Dados Simulados de Demonstração
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Utilize esta opção apenas caso queira repovoar a base com dados fictícios de teste (alunos Pedro e Mariana, instrutor Carlos, etc.) para treinamento ou demonstrações.
+              </p>
+            </div>
+
+            <button
+              onClick={handleResetData}
+              className="flex items-center gap-1.5 px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold rounded-xl transition-colors cursor-pointer shrink-0"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+              Restaurar Dados Demo
+            </button>
+          </div>
         </div>
       )}
 
@@ -882,6 +989,12 @@ export const AdminMasterPanel: React.FC<AdminMasterPanelProps> = ({ currentUser,
           </div>
         </div>
       )}
+
+      {/* MODAL: INTEGRAÇÃO & MIGRADOR SUPABASE */}
+      <SupabaseMigrationModal
+        isOpen={showSupabaseModal}
+        onClose={() => setShowSupabaseModal(false)}
+      />
     </div>
   );
 };

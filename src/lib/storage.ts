@@ -1678,6 +1678,90 @@ export const db = {
     seedInitialData();
   },
 
+  // Limpa todos os dados fictícios de demonstração para entrada em produção oficial (Go-Live)
+  // Preserva estritamente a conta do Administrador Master (cassiordcosta@gmail.com) e sua Organização Master
+  clearDatabaseForProduction(): void {
+    const orgId = 'org_direcao_certa_01';
+    const masterOrg: Organization = {
+      id: orgId,
+      nome: 'Sistema de Administração de Gestão de Direção',
+      tipo: 'INSTRUTOR_AUTONOMO',
+      cnpjCpf: '32.194.852/0001-44',
+      telefone: '(11) 98765-4321',
+      email: 'cassiordcosta@gmail.com',
+      cidade: 'São Paulo',
+      estado: 'SP',
+      status: 'ATIVO',
+      plano: 'MASTER',
+      criadoEm: new Date().toISOString()
+    };
+
+    const masterUser: User = {
+      id: 'usr_admin_cassio',
+      organizacaoId: orgId,
+      nome: 'Cássio Costa (Administrador Master)',
+      email: 'cassiordcosta@gmail.com',
+      papel: 'SUPER_ADMIN',
+      telefone: '(11) 98765-4321',
+      cpfUltimos4: '3300',
+      cpfFingerprint: generateCPFFingerprint('11122233300'),
+      cpfMascarado: '***.***.333-00',
+      cpfCompleto: '111.222.333-00',
+      twoFactorAtivo: true,
+      ultimoAcesso: new Date().toISOString()
+    };
+
+    const initialAudit: AuditLog[] = [
+      {
+        id: `aud_golive_${Date.now()}`,
+        organizacaoId: orgId,
+        usuarioId: masterUser.id,
+        usuarioNome: masterUser.nome,
+        acao: 'SISTEMA_GOLIVE_LIMPEZA',
+        entidade: 'database',
+        entidadeId: orgId,
+        detalhes: 'Base de dados limpa e inicializada com sucesso para ambiente de produção oficial.',
+        ipOrigem: '127.0.0.1',
+        timestamp: new Date().toISOString()
+      }
+    ];
+
+    writeList(STORAGE_KEYS.ORGANIZATIONS, [masterOrg]);
+    writeList(STORAGE_KEYS.USERS, [masterUser]);
+    writeList(STORAGE_KEYS.STUDENTS, []);
+    writeList(STORAGE_KEYS.VEHICLES, []);
+    writeList(STORAGE_KEYS.SLOTS, []);
+    writeList(STORAGE_KEYS.LESSONS, []);
+    writeList(STORAGE_KEYS.PACKAGES, []);
+    writeList(STORAGE_KEYS.ACCOUNTS, []);
+    writeList(STORAGE_KEYS.PAYMENTS, []);
+    writeList(STORAGE_KEYS.EXPENSES, []);
+    writeList(STORAGE_KEYS.INVESTMENTS, []);
+    writeList(STORAGE_KEYS.AUDIT, initialAudit);
+    writeList(STORAGE_KEYS.WHATSAPP_LOGS, []);
+    writeList(STORAGE_KEYS.SYNC_QUEUE, []);
+    localStorage.setItem(STORAGE_KEYS.SEEDED, 'true');
+    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(masterUser));
+  },
+
+  getAllDataForExport() {
+    return {
+      organizations: this.getOrganizations(),
+      users: this.getUsers(),
+      students: readList<Student>(STORAGE_KEYS.STUDENTS),
+      vehicles: readList<Vehicle>(STORAGE_KEYS.VEHICLES),
+      lessons: readList<Lesson>(STORAGE_KEYS.LESSONS),
+      slots: readList<AvailableSlot>(STORAGE_KEYS.SLOTS),
+      accounts: readList<AccountReceivable>(STORAGE_KEYS.ACCOUNTS),
+      payments: readList<PaymentRecord>(STORAGE_KEYS.PAYMENTS),
+      expenses: readList<Expense>(STORAGE_KEYS.EXPENSES),
+      investments: readList<Investment>(STORAGE_KEYS.INVESTMENTS),
+      packages: readList<PackageOffer>(STORAGE_KEYS.PACKAGES),
+      auditLogs: readList<AuditLog>(STORAGE_KEYS.AUDIT),
+      whatsappLogs: readList<WhatsAppReminderLog>(STORAGE_KEYS.WHATSAPP_LOGS)
+    };
+  },
+
   // ==========================================
   // FIREBASE / FIRESTORE INTEGRATION & MIGRATION
   // ==========================================
