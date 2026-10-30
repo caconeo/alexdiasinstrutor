@@ -32,6 +32,7 @@ import { StudentPortal } from './components/student/StudentPortal';
 import { AdminMasterPanel } from './components/admin/AdminMasterPanel';
 import { SecurityAgentsModal } from './components/common/SecurityAgentsModal';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
+import { canAccessModule } from './lib/saasPlans';
 
 export default function App() {
   // Initialize storage & seeds on mount
@@ -184,32 +185,34 @@ export default function App() {
           <div className="no-print hidden md:block mb-4 sm:mb-6">
             <nav className="flex items-center gap-1.5 p-1.5 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-x-auto scrollbar-none">
               {[
-                { id: 'DASHBOARD', label: 'Painel Geral', icon: LayoutDashboard },
-                { id: 'FINANCE', label: 'Finanças & DRE', icon: DollarSign },
-                { id: 'FINANCIAL_HEALTH', label: 'Saúde Financeira', icon: HeartPulse },
-                { id: 'STUDENTS', label: 'Alunos & Progresso', icon: Users },
-                { id: 'SCHEDULE', label: 'Agenda & Horários', icon: Calendar },
-                { id: 'WHATSAPP', label: 'Cobrança WhatsApp', icon: MessageSquare },
-                { id: 'REPORTS', label: 'Relatórios Automáticos', icon: FileText },
-                ...(isSuperAdmin ? [{ id: 'ADMIN', label: 'Console Master', icon: Shield }] : [])
-              ].map((item) => {
-                const Icon = item.icon;
-                const isActive = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer touch-target ${
-                      isActive
-                        ? 'bg-slate-900 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                    }`}
-                  >
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-slate-500'}`} />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
+                { id: 'DASHBOARD', label: 'Painel Geral', icon: LayoutDashboard, moduleId: 'DASHBOARD' },
+                { id: 'FINANCE', label: 'Finanças & DRE', icon: DollarSign, moduleId: 'FINANCE_RECEIVABLES' },
+                { id: 'FINANCIAL_HEALTH', label: 'Saúde Financeira', icon: HeartPulse, moduleId: 'FINANCIAL_HEALTH' },
+                { id: 'STUDENTS', label: 'Alunos & Progresso', icon: Users, moduleId: 'STUDENTS' },
+                { id: 'SCHEDULE', label: 'Agenda & Horários', icon: Calendar, moduleId: 'SCHEDULE' },
+                { id: 'WHATSAPP', label: 'Cobrança WhatsApp', icon: MessageSquare, moduleId: 'WHATSAPP' },
+                { id: 'REPORTS', label: 'Relatórios Automáticos', icon: FileText, moduleId: 'REPORTS' },
+                ...(isSuperAdmin ? [{ id: 'ADMIN', label: 'Console Master', icon: Shield, moduleId: 'ADMIN' }] : [])
+              ]
+                .filter((item) => item.id === 'ADMIN' || canAccessModule(currentOrg, item.moduleId, currentUser))
+                .map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveTab(item.id)}
+                      className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer touch-target ${
+                        isActive
+                          ? 'bg-slate-900 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-slate-500'}`} />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
             </nav>
           </div>
         )}
@@ -281,30 +284,32 @@ export default function App() {
       {!isStudent && (
         <nav aria-label="Navegação Principal Móvel" className="no-print md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-1.5 py-1 flex items-center justify-between shadow-lg overflow-x-auto no-scrollbar">
           {[
-            { id: 'DASHBOARD', label: 'Início', icon: LayoutDashboard },
-            { id: 'FINANCE', label: 'Finanças', icon: DollarSign },
-            { id: 'FINANCIAL_HEALTH', label: 'Saúde', icon: HeartPulse },
-            { id: 'STUDENTS', label: 'Alunos', icon: Users },
-            { id: 'SCHEDULE', label: 'Agenda', icon: Calendar },
-            { id: 'WHATSAPP', label: 'Cobrar', icon: MessageSquare },
-            { id: 'REPORTS', label: 'Relatórios', icon: FileText },
-            ...(isSuperAdmin ? [{ id: 'ADMIN', label: 'Master', icon: Shield }] : [])
-          ].map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`flex-1 min-w-[44px] flex flex-col items-center justify-center py-1.5 px-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                  isActive ? 'text-blue-600 font-extrabold bg-blue-50/60' : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                <Icon className={`w-4 h-4 mb-0.5 shrink-0 ${isActive ? 'text-blue-600 scale-110' : 'text-slate-500'}`} />
-                <span className="text-[10px] whitespace-nowrap leading-tight">{item.label}</span>
-              </button>
-            );
-          })}
+            { id: 'DASHBOARD', label: 'Início', icon: LayoutDashboard, moduleId: 'DASHBOARD' },
+            { id: 'FINANCE', label: 'Finanças', icon: DollarSign, moduleId: 'FINANCE_RECEIVABLES' },
+            { id: 'FINANCIAL_HEALTH', label: 'Saúde', icon: HeartPulse, moduleId: 'FINANCIAL_HEALTH' },
+            { id: 'STUDENTS', label: 'Alunos', icon: Users, moduleId: 'STUDENTS' },
+            { id: 'SCHEDULE', label: 'Agenda', icon: Calendar, moduleId: 'SCHEDULE' },
+            { id: 'WHATSAPP', label: 'Cobrar', icon: MessageSquare, moduleId: 'WHATSAPP' },
+            { id: 'REPORTS', label: 'Relatórios', icon: FileText, moduleId: 'REPORTS' },
+            ...(isSuperAdmin ? [{ id: 'ADMIN', label: 'Master', icon: Shield, moduleId: 'ADMIN' }] : [])
+          ]
+            .filter((item) => item.id === 'ADMIN' || canAccessModule(currentOrg, item.moduleId, currentUser))
+            .map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`flex-1 min-w-[44px] flex flex-col items-center justify-center py-1.5 px-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                    isActive ? 'text-blue-600 font-extrabold bg-blue-50/60' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 mb-0.5 shrink-0 ${isActive ? 'text-blue-600 scale-110' : 'text-slate-500'}`} />
+                  <span className="text-[10px] whitespace-nowrap leading-tight">{item.label}</span>
+                </button>
+              );
+            })}
 
           {(isSuperAdmin || currentUser?.email === 'cassiordcosta@gmail.com') && (
             <button

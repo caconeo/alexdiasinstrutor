@@ -1,6 +1,6 @@
 # DOSSIÊ COMPLETO DO SISTEMA DE GESTÃO DE DIREÇÃO
 **Documento Oficial de Registro Técnico, Arquitetura de Software, Catálogo de Telas, Funcionalidades, Regras de Negócio e Agentes de Segurança**  
-*Data de Homologação: Outubro de 2026 | Versão da Plataforma: v5.4 Auditada e Homologada*
+*Data de Homologação: Outubro de 2026 | Versão da Plataforma: v5.5 Auditada e Homologada*
 
 ---
 
@@ -405,7 +405,57 @@ O módulo financeiro do sistema foi estruturado para fornecer autonomia contábi
 
 ---
 
-## 9. AMBIENTE DO ADMINISTRADOR MASTER E VERIFICADOR DE CADASTROS
+## 9. AMBIENTE DO ADMINISTRADOR MASTER, GESTÃO DE CFCS E PLANOS SAAS
+
+O Administrador Master possui o controle supremo e irrestrito sobre todo o ecossistema da plataforma:
+- **E-mail Soberano Designado**: `cassiordcosta@gmail.com`
+- **Gestão Centralizada de Instituições e CFCs**:
+  - Consulta detalhada da ficha cadastral de cada autoescola/instrutor, incluindo seus instrutores vinculados, alunos ativos e métricas financeiras.
+  - Edição completa de dados, alteração de plano contratado, prorrogação de vigência e valor da mensalidade.
+  - **Controle Granular de Módulos (Menu Override)**: O Master pode ligar ou desligar individualmente qualquer um dos 16 módulos do sistema para uma organização específica através de caixas de seleção (*checkboxes*).
+  - **Geração e Envio de Chaves de Acesso**: Geração de chaves criptográficas exclusivas (`KEY-CFC-XXXXXX` / `KEY-INST-XXXXXX`) e encaminhamento instantâneo com mensagem formatada para WhatsApp ou E-mail.
+  - **Aprovação Obrigatória de Novos Cadastros**: Nenhum novo usuário entra na plataforma sem a liberação explícita do Master. Solicitações de auto-cadastro entram como `PENDENTE_APROVACAO` e aguardam autorização e concessão de chave.
+  - **Reset de Senha de Usuários pelo Master**: O Administrador Master pode gerar uma nova senha temporária para qualquer instrutor ou gestor da organização com 1 clique.
+  - **Bloqueio e Desbloqueio**: Suspensão manual ou por inadimplência com motivo registrado.
+  - **Exclusão de Organizações**: Remoção segura de tenants com preservação de integridade.
+
+### 9.1 Matriz Oficial dos 3 Planos SaaS + Plano DEMO
+
+| Recurso / Módulo | DEMO (Degustação) | BÁSICO (Operacional) | AVANÇADO (Profissional) | MASTER (CFC Enterprise) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Público Recomendado** | Visitante avaliando | Instrutor autônomo | Instrutores experientes | Autoescolas e CFCs |
+| **Preço Sugerido** | **Grátis (7 dias)** | **R$ 69,90 / mês** | **R$ 139,90 / mês** | **R$ 249,90 / mês** |
+| **Limite de Alunos Ativos** | Até 3 alunos | Até 25 alunos | Até 100 alunos | **Ilimitado** |
+| **Limite de Instrutores** | 1 instrutor | 1 instrutor | Até 3 instrutores | **Ilimitado** |
+| **Painel Geral & Métricas** | Sim | Sim | Sim | Sim |
+| **Alunos & Matriz CONTRAN** | Sim | Sim | Sim | Sim |
+| **Agenda Prática (06h às 00h)** | Sim | Sim | Sim | Sim |
+| **Contas a Receber & PIX** | Não | Sim | Sim | Sim |
+| **Catálogo de Pacotes/Planos** | Não | Sim | Sim | Sim |
+| **Despesas do Veículo/Oficina** | Não | Não | Sim | Sim |
+| **Metas de Investimento & Frota**| Não | Não | Sim | Sim |
+| **DRE - Demonstrativo Gerencial**| Não | Não | Sim | Sim |
+| **Recibo Digital Oficial Aluno** | Não | Não | Sim | Sim |
+| **Cobrança/Lembretes WhatsApp**| Não | Não | Sim | Sim |
+| **Relatórios e Ficha A4 PDF** | Não | Não | Sim | Sim |
+| **Saúde Financeira & DETRAN** | Não | Não | Não | **Sim** |
+| **IRPF / Carnê-Leão (PDF/CSV)** | Não | Não | Não | **Sim** |
+| **Gestão de Frota Veicular** | Não | Não | Não | **Sim** |
+| **Múltiplos Instrutores CFC** | Não | Não | Não | **Sim** |
+| **Auditoria LGPD Perpétua** | Não | Não | Não | **Sim** |
+
+### 9.2 Ferramenta de Varredura de Integridade (`verifyCadastrosIntegrity`)
+- Algoritmo que executa validação cruzada entre Alunos, Instrutores, Organizações, Aulas e Pagamentos.
+- Verifica:
+  - Se existem alunos sem instrutor atribuído ou vinculados a instrutor inexistente;
+  - Se há aulas práticas sem instrutor ou aluno associado;
+  - Se há contas a receber sem titular correspondente;
+  - Se existem CPFs duplicados na base;
+  - Se existem agendamentos com sobreposição de horários para o mesmo instrutor ou veículo.
+- **Ação Corretiva Imediata**: Em caso de descredenciamento ou substituição de instrutor, o Administrador Master utiliza o modal de **Reatribuição de Alunos** para transferir a carteira de alunos com 1 clique, sem perdas pedagógicas.
+- **Acesso ao Dossiê**: O botão do Dossiê Técnico é restrito exclusivamente ao Master, garantindo sigilo das regras de segurança e agentes de governança.
+
+
 
 O Administrador Master possui o papel supremo na infraestrutura:
 - **E-mail Designado**: `cassiordcosta@gmail.com`
@@ -512,8 +562,13 @@ Representa os clientes empresariais ou autônomos que utilizam a plataforma (Ten
 | `email` | `string` | `string` | Sim | E-mail corporativo principal do tenant. |
 | `cidade` | `string` | `string` | Sim | Município de atuação cadastrado junto ao DETRAN. |
 | `estado` | `string` | `string` | Sim | Sigla da Unidade Federativa (UF, 2 caracteres). |
-| `status` | `'ATIVO' \| 'BLOQUEADO' \| 'TESTE'` | `string` | Sim | Situação cadastral e de adimplência do tenant. |
-| `plano` | `'BASICO' \| 'PRO' \| 'ENTERPRISE'` | `string` | Sim | Nível de assinatura e recursos habilitados no sistema. |
+| `status` | `'ATIVO' \| 'BLOQUEADO' \| 'PENDENTE_APROVACAO' \| 'VENCIDO' \| 'TESTE'` | `string` | Sim | Situação cadastral da instituição e liberação pelo Master. |
+| `plano` | `'DEMO' \| 'BASICO' \| 'AVANCADO' \| 'MASTER'` | `string` | Sim | Plano SaaS contratado com regras e limites de recursos. |
+| `dataVencimentoPlano` | `string` | `string` | Não | Data de validade da mensalidade/assinatura (`YYYY-MM-DD`). |
+| `valorMensalidadeCentavos` | `number` | `number` | Não | Valor nominal da mensalidade acordada em centavos. |
+| `chaveAcesso` | `string` | `string` | Não | Chave de liberação oficial emitida pelo Master (`KEY-CFC-XXXXXX`). |
+| `chaveAcessoGeradaEm` | `string` | `string` | Não | Timestamp ISO 8601 da emissão da chave de acesso. |
+| `modulosCustomizados` | `string[]` | `array` | Não | Lista personalizada de módulos liberados pelo Master (Menu Override). |
 | `criadoEm` | `string` | `string` | Sim | Data e hora de criação no padrão ISO 8601. |
 
 ---
@@ -864,5 +919,5 @@ Este Dossiê constitui o registro definitivo e exaustivo de todas as funcionalid
 
 *Homologado para produção e operação contínua.*  
 *Administração Master: cassiordcosta@gmail.com*  
-*Versão do Sistema: v5.4 Estável, Auditada e Protegida*
+*Versão do Sistema: v5.5 Estável, Auditada e Protegida*
 

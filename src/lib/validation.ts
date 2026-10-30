@@ -154,6 +154,7 @@ export function formatDateBR(dateInput: string | Date | undefined | null): strin
   if (!dateInput) return '';
 
   if (dateInput instanceof Date) {
+    if (isNaN(dateInput.getTime())) return '';
     const dia = String(dateInput.getDate()).padStart(2, '0');
     const mes = String(dateInput.getMonth() + 1).padStart(2, '0');
     const ano = dateInput.getFullYear();
@@ -167,14 +168,10 @@ export function formatDateBR(dateInput: string | Date | undefined | null): strin
     return clean;
   }
 
-  // Remove qualquer parte de tempo 'T...' ou ' ...'
-  const dateOnly = clean.includes('T') ? clean.split('T')[0] : clean.split(' ')[0];
-  const parts = dateOnly.split('-');
-
-  if (parts.length === 3 && parts[0].length === 4) {
-    const ano = parts[0];
-    const mes = parts[1].padStart(2, '0');
-    const dia = parts[2].padStart(2, '0');
+  // Se for YYYY-MM-DD ou formato ISO com YYYY-MM-DD no início
+  const matchYMD = clean.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (matchYMD) {
+    const [, ano, mes, dia] = matchYMD;
     return `${dia}/${mes}/${ano}`;
   }
 

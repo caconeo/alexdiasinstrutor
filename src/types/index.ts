@@ -4,6 +4,10 @@ export type UserRole = 'SUPER_ADMIN' | 'ADMIN_ORG' | 'INSTRUTOR' | 'ALUNO';
 
 export type OrganizationType = 'INSTRUTOR_AUTONOMO' | 'AUTOESCOLA_CFC';
 
+export type OrganizationStatus = 'ATIVO' | 'BLOQUEADO' | 'PENDENTE_APROVACAO' | 'VENCIDO' | 'TESTE';
+
+export type SaaSPlanType = 'DEMO' | 'BASICO' | 'AVANCADO' | 'MASTER' | 'PRO' | 'ENTERPRISE';
+
 export interface Organization {
   id: string;
   nome: string;
@@ -13,9 +17,21 @@ export interface Organization {
   email: string;
   cidade: string;
   estado: string;
-  status: 'ATIVO' | 'BLOQUEADO' | 'TESTE';
-  plano: 'BASICO' | 'PRO' | 'ENTERPRISE';
+  status: OrganizationStatus;
+  plano: SaaSPlanType;
   criadoEm: string;
+  // Campos de Gestão SaaS & Assinatura Master
+  dataVencimentoPlano?: string;
+  valorMensalidadeCentavos?: number;
+  chaveAcesso?: string;
+  chaveAcessoGeradaEm?: string;
+  modulosCustomizados?: string[];
+  limiteAlunos?: number;
+  limiteInstrutores?: number;
+  solicitadoPorNome?: string;
+  solicitadoPorEmail?: string;
+  solicitadoPorTelefone?: string;
+  motivoBloqueio?: string;
 }
 
 export interface User {
@@ -33,6 +49,8 @@ export interface User {
   twoFactorSecret?: string;
   ultimoAcesso?: string;
   avatarUrl?: string;
+  senhaTemporaria?: string;
+  aprovadoPorMaster?: boolean;
 }
 
 export interface Student {

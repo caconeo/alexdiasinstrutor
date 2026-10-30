@@ -79,7 +79,7 @@ export const FinancialHealthView: React.FC<FinancialHealthViewProps> = ({
   const anoAtual = new Date().getFullYear();
   const veiculosComAlerta = vehicles.map((v) => {
     const idade = anoAtual - v.ano;
-    const limiteDetran = v.categoria === 'A' ? 5 : 8; // 5 anos para moto, 8 para carro
+    const limiteDetran = v.tipo === 'MOTO' ? 5 : 8; // 5 anos para moto, 8 para carro
     const anosRestantes = Math.max(0, limiteDetran - idade);
     return {
       ...v,

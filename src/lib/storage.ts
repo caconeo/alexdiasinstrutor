@@ -13,7 +13,8 @@ import {
   StudentTransferHistory,
   AuditLog,
   WhatsAppReminderLog,
-  SyncQueueItem
+  SyncQueueItem,
+  SaaSPlanType
 } from '../types';
 import { generateCPFFingerprint, maskCPF } from './validation';
 import {
@@ -841,6 +842,141 @@ export const db = {
     list.push(org);
     writeList(STORAGE_KEYS.ORGANIZATIONS, list);
     this.addAuditLog(org.id, 'SISTEMA', 'CRIACAO_ORGANIZACAO', 'Organizacao', org.id, `Criada organização ${org.nome}`);
+  },
+
+  updateOrganization(org: Organization, actorId: string): void {
+    const list = this.getOrganizations();
+    const index = list.findIndex((o) => o.id === org.id);
+    if (index >= 0) {
+      list[index] = org;
+      writeList(STORAGE_KEYS.ORGANIZATIONS, list);
+      this.addAuditLog(
+        org.id,
+        actorId,
+        'ATUALIZACAO_ORGANIZACAO',
+        'Organizacao',
+        org.id,
+        `Atualizada organização ${org.nome} (Plano: ${org.plano}, Status: ${org.status})`
+      );
+    }
+  },
+
+  deleteOrganization(orgId: string, actorId: string): { success: boolean; error?: string } {
+    const list = this.getOrganizations();
+    const org = list.find((o) => o.id === orgId);
+    if (!org) return { success: false, error: 'Organização não encontrada.' };
+
+    if (list.length <= 1) {
+      return { success: false, error: 'Não é permitido excluir a única organização do sistema.' };
+    }
+
+    const filtered = list.filter((o) => o.id !== orgId);
+    writeList(STORAGE_KEYS.ORGANIZATIONS, filtered);
+    this.addAuditLog(
+      orgId,
+      actorId,
+      'EXCLUSAO_ORGANIZACAO',
+      'Organizacao',
+      orgId,
+      `Excluída organização ${org.nome} (${org.cnpjCpf})`
+    );
+    return { success: true };
+  },
+
+  generateOrganizationAccessKey(orgId: string, actorId: string): { key: string; date: string } {
+    const list = this.getOrganizations();
+    const org = list.find((o) => o.id === orgId);
+    const randomHex = Math.floor(100000 + Math.random() * 900000);
+    const key = `KEY-${org?.tipo === 'AUTOESCOLA_CFC' ? 'CFC' : 'INST'}-${randomHex}`;
+    const date = new Date().toISOString();
+
+    if (org) {
+      org.chaveAcesso = key;
+      org.chaveAcessoGeradaEm = date;
+      writeList(STORAGE_KEYS.ORGANIZATIONS, list);
+      this.addAuditLog(
+        orgId,
+        actorId,
+        'GERAR_CHAVE_ACESSO',
+        'Organizacao',
+        orgId,
+        `Gerada nova chave de acesso: ${key}`
+      );
+    }
+    return { key, date };
+  },
+
+  approveOrganizationRegistration(params: {
+    orgId: string;
+    plano: SaaSPlanType;
+    diasValidade: number;
+    actorId: string;
+  }): { success: boolean; key: string } {
+    const list = this.getOrganizations();
+    const org = list.find((o) => o.id === params.orgId);
+    if (!org) return { success: false, key: '' };
+
+    const randomHex = Math.floor(100000 + Math.random() * 900000);
+    const key = `KEY-${org.tipo === 'AUTOESCOLA_CFC' ? 'CFC' : 'INST'}-${randomHex}`;
+    const vencimento = new Date(Date.now() + params.diasValidade * 86400000).toISOString().slice(0, 10);
+
+    org.status = 'ATIVO';
+    org.plano = params.plano;
+    org.chaveAcesso = key;
+    org.chaveAcessoGeradaEm = new Date().toISOString();
+    org.dataVencimentoPlano = vencimento;
+
+    writeList(STORAGE_KEYS.ORGANIZATIONS, list);
+
+    const users = readList<User>(STORAGE_KEYS.USERS);
+    users.forEach((u) => {
+      if (u.organizacaoId === params.orgId) {
+        u.aprovadoPorMaster = true;
+      }
+    });
+    writeList(STORAGE_KEYS.USERS, users);
+
+    this.addAuditLog(
+      params.orgId,
+      params.actorId,
+      'APROVACAO_CADASTRO',
+      'Organizacao',
+      params.orgId,
+      `Cadastro aprovado pelo Master. Plano: ${params.plano}, Validade: ${vencimento}, Chave: ${key}`
+    );
+
+    return { success: true, key };
+  },
+
+  resetUserPasswordByMaster(
+    userId: string,
+    actorId: string
+  ): { success: boolean; newTempPass: string; userName: string; userEmail: string } {
+    const users = readList<User>(STORAGE_KEYS.USERS);
+    const user = users.find((u) => u.id === userId);
+    if (!user) {
+      return { success: false, newTempPass: '', userName: '', userEmail: '' };
+    }
+
+    const tempPass = `Temp@${Math.floor(100000 + Math.random() * 900000)}`;
+    user.senhaTemporaria = tempPass;
+    writeList(STORAGE_KEYS.USERS, users);
+
+    this.addAuditLog(
+      user.organizacaoId,
+      actorId,
+      'RESET_SENHA_MASTER',
+      'Usuario',
+      user.id,
+      `Master resetou a senha do usuário ${user.nome} (${user.email}). Senha temporária gerada.`
+    );
+
+    return {
+      success: true,
+      newTempPass: tempPass,
+      userName: user.nome,
+      userEmail: user.email
+    };
   },
 
   // Users
